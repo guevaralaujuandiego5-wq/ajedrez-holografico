@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <title>Simulador de Ajedrez Holográfico 3D - Multiversolabs (indice13)</title>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
   <style>
     body { margin: 0; overflow: hidden; background-color: #000000; font-family: monospace; transition: background 0.5s; }
     canvas { display: block; }
@@ -638,6 +640,81 @@
       updateAvailablePiecesUI();
       startTurnTimer();
     }
+
+    function crearSalaMultijugador() {
+    const inputSala = document.getElementById('TU_INPUT_DE_CREAR_SALA');
+    if (inputSala) {
+        const numeroDeSala = inputSala.value.trim();
+
+        const peer = new Peer('multiversolabs-ajedrez-' + numeroDeSala); 
+
+        peer.on('open', (id) => {
+            console.log('Sala creada con éxito. ID:', id);
+        });
+
+        peer.on('connection', (conn) => {
+            window.conexionActiva = conn; 
+            configurarEscuchaDeRed();     
+            console.log('¡Oponente conectado a la partida!');
+        });
+    }
+}
+    function unirseSalaMultijugador() {
+    const inputUnirse = document.getElementById('TU_INPUT_DE_UNIRSE_SALA'); // <--- Reemplaza con el ID real de tu input para unirse
+    if (inputUnirse) {
+        const numeroDeSalaIngresado = inputUnirse.value.trim();
+
+        // Creamos un nodo temporal para el invitado
+        const peerCliente = new Peer(); 
+
+        peerCliente.on('open', (id) => {
+            const conn = peerCliente.connect('multiversolabs-ajedrez-' + numeroDeSalaIngresado);
+            
+            conn.on('open', () => {
+                window.conexionActiva = conn; // Guardamos la conexión activa
+                configurarEscuchaDeRed();     // Activamos el receptor de movimientos (Paso 4)
+                console.log('¡Conectado exitosamente con el anfitrión!');
+            });
+
+            conn.on('error', (err) => {
+                alert('No se pudo conectar a la sala. Verifica el número.');
+            });
+        });
+    }
+}
+
+    function movePieceUI(origenForzado, destinoForzado) {
+    const fromSelect = document.getElementById('fromCell');
+    const toSelect = document.getElementById('toCell');
+
+    const origen = origenForzado || (fromSelect ? fromSelect.value : null);
+    const destino = destinoForzado || (toSelect ? toSelect.value : null);
+
+    if (!origen || !destino || origen === destino) return;
+
+    console.log(`Moviendo ficha de ${origen} a ${destino}`);
+
+    if (!origenForzado && window.conexionActiva && window.conexionActiva.open) {
+        window.conexionActiva.send({
+            tipo: 'MOVER_FICHA',
+            origen: origen,
+            destino: destino
+        });
+    }
+}
+
+function configurarEscuchaDeRed() {
+    if (window.conexionActiva) {
+        window.conexionActiva.on('data', (datos) => {
+            if (datos.tipo === 'MOVER_FICHA') {
+                movePieceUI(datos.origen, datos.destino);
+            }
+        });
+    }
+}
+
+
+// ==========================================
 
     function startTurnTimer() {
       if (timerSetting === 'off' || isGameOver) return;
