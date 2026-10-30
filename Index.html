@@ -1,0 +1,1821 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Ajedrez Holográfico 3D - Multiversolabs (indice13)</title>
+  <style>
+    body { margin: 0; overflow: hidden; background-color: #000000; font-family: monospace; transition: background 0.5s; }
+    canvas { display: block; }
+    
+    #matrixCanvas {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      pointer-events: none;
+      z-index: 90;
+      opacity: 0.65;
+    }
+
+    #auth-screen {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: rgba(0, 10, 20, 0.75);
+      backdrop-filter: blur(5px);
+      z-index: 100;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #00ffff;
+      flex-direction: column;
+    }
+    .auth-box {
+      width: 380px;
+      background: rgba(0, 20, 35, 0.92);
+      border: 1px solid #00ffff;
+      box-shadow: 0 0 25px rgba(0, 255, 255, 0.4);
+      border-radius: 8px;
+      padding: 20px;
+      box-sizing: border-box;
+      z-index: 95;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+    .auth-box h2 {
+      text-align: center;
+      margin-top: 0;
+      font-size: 15px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      border-bottom: 1px solid rgba(0, 255, 255, 0.4);
+      padding-bottom: 6px;
+    }
+    .auth-box label { display: block; font-size: 11px; margin-bottom: 3px; margin-top: 8px; }
+    .auth-box input, .auth-box select {
+      width: 100%;
+      background: #001a26;
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 6px;
+      font-family: monospace;
+      border-radius: 4px;
+      box-sizing: border-box;
+      margin-bottom: 6px;
+    }
+    .auth-box button {
+      width: 100%;
+      background: rgba(0, 255, 255, 0.3);
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 8px;
+      font-family: monospace;
+      font-weight: bold;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-top: 8px;
+      transition: 0.3s;
+    }
+    .auth-box button:hover { background: rgba(0, 255, 255, 0.6); }
+    .auth-switch { text-align: center; font-size: 10px; margin-top: 10px; cursor: pointer; text-decoration: underline; z-index: 95; }
+
+    .brand-footer {
+      position: absolute;
+      bottom: 10px;
+      text-align: center;
+      font-size: 9px;
+      color: rgba(0, 255, 255, 0.6);
+      letter-spacing: 1px;
+      z-index: 95;
+    }
+    .brand-footer a { color: #00ffff; text-decoration: none; }
+
+    #game-ui { display: none; }
+
+    #toggle-panel-btn {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 30;
+      width: auto !important;
+      display: inline-block !important;
+      background: rgba(0, 15, 25, 0.9);
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 6px 12px;
+      font-size: 11px;
+      font-family: monospace;
+      border-radius: 4px;
+      cursor: pointer;
+      box-shadow: 0 0 8px rgba(0, 255, 255, 0.4);
+      font-weight: bold;
+    }
+
+    #info-status {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      right: 110px;
+      color: #00ffff;
+      font-size: 10px;
+      line-height: 1.35;
+      text-shadow: 0 0 4px #00ffff;
+      pointer-events: none;
+      z-index: 10;
+    }
+
+    #math-panel {
+      position: absolute;
+      top: 45px;
+      right: 10px;
+      width: 260px;
+      background: rgba(0, 15, 25, 0.95);
+      border: 1px solid #00ffff;
+      box-shadow: 0 0 15px rgba(0, 255, 255, 0.3);
+      border-radius: 6px;
+      padding: 10px;
+      color: #00ffff;
+      backdrop-filter: blur(5px);
+      z-index: 20;
+      transition: all 0.3s ease;
+      max-height: 85vh;
+      overflow-y: auto;
+    }
+
+    #math-panel.hidden { display: none !important; }
+
+    .collapsible-header {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0, 255, 255, 0.1);
+      padding: 6px 8px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      font-size: 10px;
+      text-transform: uppercase;
+      border: 1px solid rgba(0, 255, 255, 0.4);
+    }
+    .collapsible-content { display: none; margin-bottom: 8px; }
+    .collapsible-content.open { display: block; }
+
+    .control-group {
+      margin-bottom: 8px;
+      background: rgba(0, 255, 255, 0.04);
+      padding: 6px;
+      border-radius: 4px;
+      border-left: 2px solid #00ffff;
+    }
+    label { display: block; font-size: 10px; margin-bottom: 4px; }
+    select, input[type="text"], input[type="password"], input[type="email"], input[type="color"], button {
+      width: 100%;
+      background: #001a26;
+      border: 1px solid #00ffff;
+      color: #00ffff;
+      padding: 5px;
+      font-family: monospace;
+      border-radius: 3px;
+      margin-bottom: 6px;
+      box-sizing: border-box;
+      transition: all 0.3s;
+    }
+    input::placeholder { color: rgba(0, 255, 255, 0.5); }
+    button { cursor: pointer; background: rgba(0, 255, 255, 0.2); font-weight: bold; }
+    button:hover { background: rgba(0, 255, 255, 0.4); }
+
+    body.light-mode { background-color: #ffffff; }
+    body.light-mode #toggle-panel-btn { background: rgba(240, 240, 240, 0.9); border-color: #007799; color: #004455; }
+    body.light-mode #math-panel { background: rgba(255, 255, 255, 0.95); border-color: #007799; color: #004455; }
+    body.light-mode .control-group { background: rgba(0, 119, 153, 0.05); border-left-color: #007799; }
+    body.light-mode select, body.light-mode input { background: #f5f5f5; border-color: #007799; color: #004455; }
+    body.light-mode button { background: #e2f1f5 !important; color: #003344 !important; border-color: #007799 !important; }
+    body.light-mode button:hover { background: #c5e4ee !important; color: #001122 !important; }
+    body.light-mode #info-status { color: #004455; text-shadow: 0 0 3px #ffffff; }
+
+    .turn-indicator { font-weight: bold; padding: 4px; border-radius: 3px; text-align: center; margin-bottom: 8px; }
+  </style>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+</head>
+<body>
+
+  <!-- EFECTO LLUVIA DIGITAL MATRIX -->
+  <canvas id="matrixCanvas"></canvas>
+
+  <!-- PANTALLA DE INICIO Y CONFIGURACIÓN -->
+  <div id="auth-screen">
+    <div class="auth-box" id="loginBox">
+      <h2>Acceso Estelar</h2>
+      <label>Correo Electrónico:</label>
+      <input type="email" id="loginEmail" placeholder="usuario@cosmos.com">
+      <label>Contraseña:</label>
+      <input type="password" id="loginPass" placeholder="••••••••">
+      <button onclick="handleLogin()">Ingresar</button>
+      <div class="auth-switch" onclick="switchAuthView('register')">¿No tienes cuenta? Regístrate aquí</div>
+      <div class="auth-switch" onclick="switchAuthView('forgot')" style="margin-top:6px; color:#ffaa00;">¿Olvidaste tu contraseña?</div>
+    </div>
+
+    <div class="auth-box" id="registerBox" style="display:none;">
+      <h2>Registro de Piloto</h2>
+      <label>Correo Electrónico:</label>
+      <input type="email" id="regEmail" placeholder="usuario@cosmos.com">
+      <label>Contraseña:</label>
+      <input type="password" id="regPass" placeholder="••••••••">
+      <button onclick="handleRegister()">Crear Cuenta</button>
+      <div class="auth-switch" onclick="switchAuthView('login')">Ya tengo una cuenta</div>
+    </div>
+
+    <div class="auth-box" id="forgotBox" style="display:none;">
+      <h2>Recuperar Clave</h2>
+      <label>Correo Electrónico Registrado:</label>
+      <input type="email" id="forgotEmail" placeholder="usuario@cosmos.com">
+      <button onclick="sendRecoveryCode()" style="background:rgba(0,255,255,0.2);">Enviar Código al Correo</button>
+
+      <div id="forgotCodeStep" style="display:none; margin-top:8px;">
+        <label style="color:#ffaa00;">Código de Verificación:</label>
+        <input type="text" id="forgotCodeInput" placeholder="Ej: 482910">
+        <label>Nueva Contraseña:</label>
+        <input type="password" id="forgotNewPass" placeholder="••••••••">
+        <button onclick="verifyAndResetPassword()" style="background:rgba(0,255,170,0.3); border-color:#00ffaa;">Confirmar y Cambiar Clave</button>
+      </div>
+
+      <div class="auth-switch" onclick="switchAuthView('login')">Volver al Ingreso</div>
+    </div>
+
+    <div class="auth-box" id="modeSelectBox" style="display:none;">
+      <h2>Configuración de Partida</h2>
+      
+      <label>Tu Mote / Nombre Estelar (Jugador 1):</label>
+      <input type="text" id="playerNameInput" value="Piloto Sirius 🚀">
+
+      <!-- CAMPO EXCLUSIVO PARA MODO LOCAL (JUGADOR 2) -->
+      <div id="localOpponentGroup">
+        <label>Nombre del Oponente (Jugador 2 - Local):</label>
+        <input type="text" id="opponentNameInput" value="Piloto Vega 🛸">
+      </div>
+
+      <div style="font-size:9px; color:#ffaa00; margin-bottom:6px;">
+        ID Único de Flota: <span id="userGeneratedID" style="font-weight:bold; color:#00ffff;">GEN-0000</span>
+      </div>
+
+      <label>Modo de Juego:</label>
+      <select id="gameModeInput" onchange="onModeOptionChange()">
+        <option value="local">2 Jugadores (Mismo Dispositivo)</option>
+        <option value="ai">Vs Computadora (IA Holográfica)</option>
+        <option value="bluetooth">Conexión Bluetooth (Android)</option>
+        <option value="web">Multijugador Vía Web (Online)</option>
+      </select>
+
+      <!-- SELECTORES DE COLOR DINÁMICOS -->
+      <div id="singleColorPickerGroup" style="display:none;">
+        <label>Color de tus Fichas (Bando 1):</label>
+        <input type="color" id="playerColorPicker" value="#00ffff">
+      </div>
+
+      <div id="dualColorPickerGroup" style="display:block;">
+        <label>Color Fichas Jugador 1 (Sirius):</label>
+        <input type="color" id="player1ColorPicker" value="#00ffff">
+        <label>Color Fichas Jugador 2 (Vega):</label>
+        <input type="color" id="player2ColorPicker" value="#ff00aa">
+      </div>
+
+      <label>Selección de Modelo de Fichas:</label>
+      <select id="authPieceModelInput">
+        <option value="1" selected>Modelo 1: Poliedros Estelares</option>
+        <option value="2">Modelo 2: Formas Geométricas / Toroides</option>
+        <option value="3">Modelo 3: Clásicos Esculpidos Detallados (Estándar)</option>
+      </select>
+
+      <label>Cronómetro por Jugada (Modo Torneo):</label>
+      <select id="timerModeInput">
+        <option value="off">Sin Cronómetro (Libre)</option>
+        <option value="30">30 Segundos por Jugada</option>
+        <option value="60">60 Segundos por Jugada</option>
+      </select>
+
+      <div id="webConfigGroup" style="display:none; margin-top:8px;">
+        <label>Código de Sala Vía Web:</label>
+        <input type="text" id="webRoomInput" placeholder="Ej: SALA123">
+        <button onclick="initWebConnection('host')" style="background:rgba(0,255,255,0.2);">Crear Sala Web (Host)</button>
+        <button onclick="initWebConnection('join')" style="background:rgba(255,0,170,0.2); border-color:#ff00aa; color:#ff00aa;">Unirse a Sala Web (Guest)</button>
+      </div>
+
+      <div id="btConfigGroup" style="display:none; margin-top:8px;">
+        <button onclick="initBluetoothConnection()" style="background:rgba(0,150,255,0.3); border-color:#0099ff;">Escanear Bluetooth Android</button>
+      </div>
+
+      <button onclick="startSelectedGameMode()" id="startModeBtn" style="margin-top:14px;">Iniciar Nueva Partida Estelar</button>
+      <button onclick="loadSavedGameSession()" style="margin-top:6px; background:rgba(255,170,0,0.2); border-color:#ffaa00; color:#ffaa00;">Cargar Partida Guardada</button>
+    </div>
+
+    <div class="brand-footer">
+      Desarrollado por <a href="https://multiversolabs.space" target="_blank">Multiversolabs.space</a>
+    </div>
+  </div>
+
+  <!-- INTERFAZ PRINCIPAL DE JUEGO -->
+  <div id="game-ui">
+    <div id="info-status">
+      >>> AJEDREZ HOLOGRÁFICO <<<
+      <br>Modo: <span id="activeModeLabel" style="color:#00ffff;">Local</span> | Turno: <span id="myAssignedRoleDisplay" style="font-weight:bold; color:#00ffff;">Sirius</span>
+    </div>
+
+    <button id="toggle-panel-btn" onclick="togglePanel()">☰ Menú</button>
+
+    <div id="math-panel">
+      <div id="turnDisplay" class="turn-indicator">TURNO: SIRIUS</div>
+      <div id="timerDisplay" style="text-align:center; font-size:11px; margin-bottom:6px; color:#00ffaa; display:none;">TIEMPO: <span id="timeLeft">30</span>s</div>
+
+      <!-- PROMOCIÓN DE PEÓN -->
+      <div id="promotionGroup" class="control-group" style="display:none; border-left-color: #ffaa00; background: rgba(255,170,0,0.08);">
+        <label style="color: #ffaa00; font-weight:bold;">¡PROMOCIÓN DE PEÓN!</label>
+        <select id="promotionChoice">
+          <option value="q">Reina</option>
+          <option value="r">Torre</option>
+          <option value="b">Alfil</option>
+          <option value="n">Caballo</option>
+        </select>
+        <button onclick="confirmPromotion()" style="background: rgba(255,170,0,0.3); border-color:#ffaa00; color:#ffaa00;">Efectuar Evolución</button>
+      </div>
+
+      <!-- GUARDADO TÁCTICO & REFRESCAR -->
+      <div class="collapsible-header" onclick="toggleAccordion('saveSubpanel')">
+        <span>Control de Partida</span> <span id="saveSubpanelArrow">▼</span>
+      </div>
+      <div id="saveSubpanel" class="collapsible-content open">
+        <div class="control-group">
+          <button onclick="startSelectedGameMode()" style="background: rgba(0,255,170,0.3); border-color:#00ffaa; color:#00ffaa; margin-bottom:6px;">🔄 Refrescar / Nueva Partida</button>
+          <button onclick="saveGameSession()" style="background: rgba(0,255,255,0.2);">Guardar Partida Actual</button>
+        </div>
+      </div>
+
+      <!-- CÁMARA Y PANTALLA -->
+      <div class="collapsible-header" onclick="toggleAccordion('camSubpanel')">
+        <span>Cámara y Pantalla (2D / 3D)</span> <span id="camSubpanelArrow">►</span>
+      </div>
+      <div id="camSubpanel" class="collapsible-content">
+        <div class="control-group">
+          <button onclick="toggleFullscreen()">Pantalla Completa</button>
+          <button onclick="toggle2DStaticMode()" style="background:rgba(0,255,170,0.2); border-color:#00ffaa; color:#00ffaa;">Modo 2D Estático (Ajustado a Pantalla)</button>
+          <button onclick="toggleTopView()">Vista Superior Libre</button>
+          <button onclick="togglePerspectiveView()">Vista Perspectiva 3D</button>
+          <button onclick="toggleSideView('left')">Observador Izquierda</button>
+          <button onclick="toggleSideView('right')">Observador Derecha</button>
+          <button onclick="toggleTheme()">Cambiar Modo (Nocturno / Blanco)</button>
+        </div>
+      </div>
+
+      <!-- GESTIÓN DE CUENTA & ADMIN -->
+      <div class="collapsible-header" onclick="toggleAccordion('adminSubpanel')">
+        <span>Gestión de Cuenta & Admin</span> <span id="adminSubpanelArrow">►</span>
+      </div>
+      <div id="adminSubpanel" class="collapsible-content">
+        <div class="control-group">
+          <div style="font-size:10px; margin-bottom:8px; color:#ff00aa; border-bottom:1px solid rgba(255,0,170,0.3); padding-bottom:4px;">
+            Piloto: <span id="adminProfileName">Invitado</span><br>
+            ID: <span id="adminProfileID" style="color:#00ffff;">N/A</span><br>
+            Rango: <span id="adminRankDisplay">Novato</span>
+          </div>
+          <label>Cambiar mi Contraseña:</label>
+          <input type="password" id="userNewPass" placeholder="Nueva contraseña">
+          <button onclick="userChangePassword()">Actualizar Contraseña</button>
+          
+          <label style="margin-top:8px;">Panel de Administrador:</label>
+          <select id="adminUserSelect"></select>
+          <button onclick="adminDeleteSelectedAccount()" style="background: rgba(255,0,0,0.3); border-color: #ff0000; color: #ff6666;">Eliminar Cuenta Seleccionada</button>
+          
+          <hr style="border:0; border-top:1px solid rgba(0,255,255,0.3); margin: 8px 0;">
+          <button onclick="userDeleteOwnAccount()" style="background: rgba(255,50,50,0.2); color: #ff8888;">Eliminar Mi Cuenta</button>
+          <button onclick="handleLogout()" style="background: rgba(0,100,150,0.3); color: #00ffff;">Cerrar Sesión</button>
+        </div>
+      </div>
+
+      <h3>Chat Táctico Estelar</h3>
+      <div class="control-group">
+        <input type="text" id="chatInput" maxlength="28" placeholder="Máx 28 caracteres...">
+        <button onclick="sendChatMessage()">Enviar Mensaje (<span id="chatCount">3</span> rest.)</button>
+        <button onclick="toggleChatLock()" id="chatLockBtn" style="background: rgba(255,50,50,0.3); border-color: #ff5555; color: #ff8888; margin-top:4px;">🔒 Bloquear Chat</button>
+      </div>
+
+      <h3>Mover Pieza (Táctil o Menú)</h3>
+      <div class="control-group">
+        <label>Mis Piezas Disponibles (Origen):</label>
+        <select id="fromCell" onchange="updateValidDestinations()"></select>
+        <label>Destino Válido:</label>
+        <select id="toCell"></select>
+        <button onclick="movePieceUI()">Ejecutar Movimiento</button>
+      </div>
+
+      <div style="text-align:center; font-size:8px; color:rgba(0,255,255,0.5); margin-top:12px; border-top:1px solid rgba(0,255,255,0.2); padding-top:6px;">
+        Multiversolabs.space © 2026
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // --- MOTOR DE LLUVIA DIGITAL MATRIX ---
+    const mCanvas = document.getElementById('matrixCanvas');
+    const mCtx = mCanvas.getContext('2d');
+    function resizeMatrix() {
+      mCanvas.width = window.innerWidth;
+      mCanvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeMatrix);
+    resizeMatrix();
+
+    const matrixChars = "01ΔΩΨXOF♔♕♖♗♘♙✦✧★";
+    const mFontSize = 14;
+    let mColumns = Math.floor(mCanvas.width / mFontSize);
+    let mDrops = Array(mColumns).fill(1);
+
+    function drawMatrixRain() {
+      mCtx.fillStyle = 'rgba(0, 10, 20, 0.15)';
+      mCtx.fillRect(0, 0, mCanvas.width, mCanvas.height);
+      mCtx.font = mFontSize + 'px monospace';
+      for (let i = 0; i < mDrops.length; i++) {
+        const text = matrixChars.charAt(Math.floor(Math.random() * matrixChars.length));
+        mCtx.fillStyle = Math.random() > 0.4 ? '#00ffff' : '#ff00aa';
+        mCtx.fillText(text, i * mFontSize, mDrops[i] * mFontSize);
+        if (mDrops[i] * mFontSize > mCanvas.height && Math.random() > 0.975) {
+          mDrops[i] = 0;
+        }
+        mDrops[i]++;
+      }
+    }
+    const matrixInterval = setInterval(drawMatrixRain, 40);
+
+    let usersDB = JSON.parse(localStorage.getItem('chess_users')) || [
+      { email: 'sirius@cosmos.com', pass: '1234', games: 0, level: 'Novato Estelar', id: 'SIR-8942-X' },
+      { email: 'vega@cosmos.com', pass: '1234', games: 0, level: 'Novato Estelar', id: 'VEG-1109-Y' }
+    ];
+    let currentUser = null;
+    let currentGameMode = 'local';
+    let player1Name = "Piloto Sirius 🚀";
+    let player2Name = "Piloto Vega 🛸";
+    let peer = null;
+    let peerConn = null;
+    let bluetoothDevice = null;
+    let myAssignedColor = 'cyan';
+    let generatedRecoveryCode = null;
+    let enPassantTarget = null;
+    let isChatLocked = false;
+    
+    let timerSetting = 'off';
+    let turnTimeLeft = 30;
+    let turnTimerInterval = null;
+    let isGameOver = false;
+    let currentPieceModelSet = 1;
+    let is2DStaticMode = false;
+
+    let stats = {
+      cyan: { moves: 0, totalTime: 0 },
+      magenta: { moves: 0, totalTime: 0 }
+    };
+    let turnStartTime = Date.now();
+
+    let matCyan = new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true });
+    let matMagenta = new THREE.MeshBasicMaterial({ color: 0xff00aa, wireframe: true });
+
+    function saveUsers() {
+      localStorage.setItem('chess_users', JSON.stringify(usersDB));
+    }
+
+    function generateIDForUser(email) {
+      const prefix = email.substring(0, 3).toUpperCase();
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      return `${prefix}-${rand}-ST`;
+    }
+
+    function switchAuthView(view) {
+      document.getElementById('loginBox').style.display = view === 'login' ? 'block' : 'none';
+      document.getElementById('registerBox').style.display = view === 'register' ? 'block' : 'none';
+      document.getElementById('modeSelectBox').style.display = view === 'mode' ? 'block' : 'none';
+      const forgotBox = document.getElementById('forgotBox');
+      if (forgotBox) forgotBox.style.display = view === 'forgot' ? 'block' : 'none';
+    }
+
+    function handleRegister() {
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPass').value.trim();
+      if (!email || !pass) { alert("Completa todos los campos."); return; }
+      if (usersDB.find(u => u.email === email)) { alert("El usuario ya existe."); return; }
+      const newID = generateIDForUser(email);
+      usersDB.push({ email, pass, games: 0, level: 'Novato Estelar', id: newID });
+      saveUsers();
+      alert("¡Cuenta creada con éxito!");
+      switchAuthView('login');
+    }
+
+    function handleLogin() {
+      const email = document.getElementById('loginEmail').value.trim();
+      const pass = document.getElementById('loginPass').value.trim();
+      const found = usersDB.find(u => u.email === email && u.pass === pass);
+      if (!found) { alert("Credenciales incorrectas."); return; }
+      if (!found.id) { found.id = generateIDForUser(found.email); saveUsers(); }
+      currentUser = found;
+      document.getElementById('userGeneratedID').innerText = currentUser.id;
+      switchAuthView('mode');
+    }
+
+    function sendRecoveryCode() {
+      const email = document.getElementById('forgotEmail').value.trim();
+      if (!email) { alert("Ingresa tu correo electrónico registrado."); return; }
+      const found = usersDB.find(u => u.email === email);
+      if (!found) { alert("El correo no se encuentra en el registro de la flota."); return; }
+      generatedRecoveryCode = Math.floor(100000 + Math.random() * 900000).toString();
+      alert(`[CORREO INTERNO]\nCódigo estelar de seguridad: ${generatedRecoveryCode}`);
+      document.getElementById('forgotCodeStep').style.display = 'block';
+    }
+
+    function verifyAndResetPassword() {
+      const email = document.getElementById('forgotEmail').value.trim();
+      const codeInput = document.getElementById('forgotCodeInput').value.trim();
+      const newPass = document.getElementById('forgotNewPass').value.trim();
+      if (!codeInput || !newPass) { alert("Completa todos los campos."); return; }
+      if (codeInput !== generatedRecoveryCode) { alert("Código incorrecto."); return; }
+      const found = usersDB.find(u => u.email === email);
+      if (found) {
+        found.pass = newPass;
+        saveUsers();
+        alert("¡Contraseña restablecida con éxito!");
+        document.getElementById('forgotCodeStep').style.display = 'none';
+        switchAuthView('login');
+      }
+    }
+
+    function onModeOptionChange() {
+      const mode = document.getElementById('gameModeInput').value;
+      document.getElementById('webConfigGroup').style.display = mode === 'web' ? 'block' : 'none';
+      document.getElementById('btConfigGroup').style.display = mode === 'bluetooth' ? 'block' : 'none';
+      document.getElementById('localOpponentGroup').style.display = mode === 'local' ? 'block' : 'none';
+      document.getElementById('startModeBtn').style.display = (mode === 'web' || mode === 'bluetooth') ? 'none' : 'block';
+      
+      if (mode === 'local') {
+        document.getElementById('singleColorPickerGroup').style.display = 'none';
+        document.getElementById('dualColorPickerGroup').style.display = 'block';
+      } else {
+        document.getElementById('singleColorPickerGroup').style.display = 'block';
+        document.getElementById('dualColorPickerGroup').style.display = 'none';
+      }
+    }
+
+    function cleanupPeerSession() {
+      if (peerConn) {
+        try { peerConn.close(); } catch(e){}
+        peerConn = null;
+      }
+      if (peer) {
+        try { peer.destroy(); } catch(e){}
+        peer = null;
+      }
+    }
+
+    window.addEventListener('beforeunload', () => {
+      cleanupPeerSession();
+    });
+
+    function startSelectedGameMode() {
+      cleanupPeerSession();
+      currentGameMode = document.getElementById('gameModeInput').value;
+      timerSetting = document.getElementById('timerModeInput').value;
+      currentPieceModelSet = parseInt(document.getElementById('authPieceModelInput').value);
+      
+      let pInput = document.getElementById('playerNameInput').value.trim() || "Piloto Sirius 🚀";
+      player1Name = pInput;
+
+      if (currentGameMode === 'ai') {
+        player2Name = "Computadora IA 🤖";
+        myAssignedColor = 'cyan';
+      } else if (currentGameMode === 'local') {
+        player2Name = document.getElementById('opponentNameInput').value.trim() || "Piloto Vega 🛸";
+        myAssignedColor = 'cyan';
+      } else {
+        player2Name = "Esperando Conexión...";
+      }
+
+      isGameOver = false;
+      isChatLocked = false;
+      stats = { cyan: { moves: 0, totalTime: 0 }, magenta: { moves: 0, totalTime: 0 } };
+
+      if (currentGameMode === 'local') {
+        const c1 = document.getElementById('player1ColorPicker').value;
+        const c2 = document.getElementById('player2ColorPicker').value;
+        matCyan.color.setHex(parseInt(c1.replace('#', ''), 16));
+        matMagenta.color.setHex(parseInt(c2.replace('#', ''), 16));
+      } else {
+        const chosenHex = document.getElementById('playerColorPicker').value;
+        applyInitialPlayerColor(chosenHex);
+      }
+
+      resetBoardToInitialState();
+
+      document.getElementById('auth-screen').style.display = 'none';
+      const mC = document.getElementById('matrixCanvas');
+      if (mC) mC.style.display = 'none';
+
+      document.getElementById('game-ui').style.display = 'block';
+      
+      document.getElementById('adminProfileName').innerText = currentUser ? currentUser.email : 'Invitado';
+      document.getElementById('adminProfileID').innerText = currentUser ? currentUser.id : 'N/A';
+      document.getElementById('activeModeLabel').innerText = currentGameMode.toUpperCase();
+
+      if (timerSetting !== 'off') {
+        document.getElementById('timerDisplay').style.display = 'block';
+      } else {
+        document.getElementById('timerDisplay').style.display = 'none';
+      }
+
+      is2DStaticMode = false;
+      controls.enabled = true;
+      const sign = getCameraSign();
+      camera.position.set(0, 8, 10 * sign);
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      if (currentUser) updateRankDisplay();
+      updateAdminUserList();
+      updateAvailablePiecesUI();
+      startTurnTimer();
+    }
+
+    function startTurnTimer() {
+      if (timerSetting === 'off' || isGameOver) return;
+      clearInterval(turnTimerInterval);
+      turnTimeLeft = parseInt(timerSetting);
+      document.getElementById('timeLeft').innerText = turnTimeLeft;
+      turnStartTime = Date.now();
+
+      turnTimerInterval = setInterval(() => {
+        if (isGameOver) { clearInterval(turnTimerInterval); return; }
+        turnTimeLeft--;
+        document.getElementById('timeLeft').innerText = turnTimeLeft;
+        if (turnTimeLeft <= 0) {
+          clearInterval(turnTimerInterval);
+          cleanupPeerSession();
+          const winnerName = (currentTurn === 'cyan') ? player2Name : player1Name;
+          triggerGameOver(`¡TIEMPO AGOTADO!\n¡Felicidades, ganó ${winnerName.toUpperCase()}!\n\nEstadísticas:\nSirius - Movs: ${stats.cyan.moves}, T: ${Math.round(stats.cyan.totalTime)}s\nVega - Movs: ${stats.magenta.moves}, T: ${Math.round(stats.magenta.totalTime)}s`);
+        }
+      }, 1000);
+    }
+
+    function recordTurnTime() {
+      const elapsed = (Date.now() - turnStartTime) / 1000;
+      stats[currentTurn].totalTime += elapsed;
+    }
+
+    function triggerGameOver(announcementText) {
+      if (isGameOver) return;
+      isGameOver = true;
+      clearInterval(turnTimerInterval);
+      cleanupPeerSession();
+      createChatSprite("🌟 ¡FIN DE PARTIDA ESTELAR! 🌟", announcementText, "#ffaa00", true);
+    }
+
+    // TABLERO RESTAURADO: JUGADOR CYAN ABAJO (FILAS 6 Y 7), OPONENTE ARRIBA (FILAS 0 Y 1)
+    function resetBoardToInitialState() {
+      currentTurn = 'cyan';
+      enPassantTarget = null;
+      clearHighlights();
+      selectedPieceCoords = null;
+      clearInterval(turnTimerInterval);
+      isGameOver = false;
+      
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c]) {
+            scene.remove(boardState[r][c]);
+            boardState[r][c] = null;
+          }
+        }
+      }
+
+      const setupArr = ['r', 'n', 'b', 'q', 'k', 'b', 'n', 'r'];
+      for (let c = 0; c < 8; c++) {
+        // Cyan (Jugador Principal) en la parte INFERIOR (Filas 6 y 7)
+        placePiece('p', 'cyan', 6, c);
+        placePiece(setupArr[c], 'cyan', 7, c);
+        
+        // Magenta (Oponente / IA) en la parte SUPERIOR (Filas 1 y 0)
+        placePiece('p', 'magenta', 1, c);
+        placePiece(setupArr[c], 'magenta', 0, c);
+      }
+    }
+
+    function saveGameSession() {
+      const serializedBoard = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = boardState[r][c];
+          if (piece) {
+            serializedBoard.push({
+              type: piece.userData.type,
+              color: piece.userData.color,
+              row: r,
+              col: c,
+              hasMoved: piece.userData.hasMoved || false
+            });
+          }
+        }
+      }
+      const gameState = {
+        board: serializedBoard,
+        turn: currentTurn,
+        mode: currentGameMode,
+        assignedColor: myAssignedColor,
+        modelSet: currentPieceModelSet,
+        p1: player1Name,
+        p2: player2Name,
+        userEmail: currentUser ? currentUser.email : 'guest'
+      };
+      localStorage.setItem('hologram_chess_saved_game', JSON.stringify(gameState));
+      alert("¡Partida estelar guardada correctamente!");
+    }
+
+    function loadSavedGameSession() {
+      const savedData = localStorage.getItem('hologram_chess_saved_game');
+      if (!savedData) { alert("No se encontró ninguna partida guardada."); return; }
+
+      cleanupPeerSession();
+      const state = JSON.parse(savedData);
+      if (!currentUser) currentUser = usersDB[0];
+
+      currentGameMode = state.mode;
+      currentTurn = state.turn;
+      myAssignedColor = state.assignedColor;
+      currentPieceModelSet = state.modelSet || 1;
+      player1Name = state.p1 || "Sirius 🚀";
+      player2Name = state.p2 || "Vega 🛸";
+
+      clearHighlights();
+      selectedPieceCoords = null;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c]) {
+            scene.remove(boardState[r][c]);
+            boardState[r][c] = null;
+          }
+        }
+      }
+
+      state.board.forEach(p => {
+        placePiece(p.type, p.color, p.row, p.col);
+        if (boardState[p.row][p.col]) {
+          boardState[p.row][p.col].userData.hasMoved = p.hasMoved;
+        }
+      });
+
+      document.getElementById('auth-screen').style.display = 'none';
+      const mC = document.getElementById('matrixCanvas');
+      if (mC) mC.style.display = 'none';
+
+      document.getElementById('game-ui').style.display = 'block';
+      document.getElementById('adminProfileName').innerText = currentUser.email;
+      document.getElementById('adminProfileID').innerText = currentUser.id || 'N/A';
+      document.getElementById('activeModeLabel').innerText = currentGameMode.toUpperCase();
+
+      is2DStaticMode = false;
+      controls.enabled = true;
+      const sign = getCameraSign();
+      camera.position.set(0, 8, 10 * sign);
+      controls.target.set(0, 0, 0);
+      controls.update();
+
+      updateRankDisplay();
+      updateAdminUserList();
+      updateAvailablePiecesUI();
+      startTurnTimer();
+      alert("¡Partida recuperada con éxito!");
+    }
+
+    function applyInitialPlayerColor(hexVal) {
+      const targetMat = myAssignedColor === 'cyan' ? matCyan : matMagenta;
+      const colorInt = parseInt(hexVal.replace('#', ''), 16);
+      targetMat.color.setHex(colorInt);
+    }
+
+    function applySpecificMaterialColor(material, hexVal) {
+      const colorInt = parseInt(hexVal.replace('#', ''), 16);
+      material.color.setHex(colorInt);
+    }
+
+    // CONEXIÓN PEERJS OPTIMIZADA CON PREFIJO GLOBAL
+    function initWebConnection(type) {
+      const rawRoomId = document.getElementById('webRoomInput').value.trim();
+      if (!rawRoomId) { alert("Escribe un código o nombre de Sala válido."); return; }
+      
+      const roomId = 'multiversolabs-chess-' + rawRoomId;
+      currentGameMode = 'web';
+      cleanupPeerSession();
+
+      const peerConfig = {
+        config: {
+          iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+        }
+      };
+      
+      if (type === 'host') {
+        peer = new Peer(roomId, peerConfig);
+        
+        peer.on('open', () => {
+          alert(`Sala Web creada: '${rawRoomId}'. Esperando oponente...`);
+          myAssignedColor = 'cyan';
+          startSelectedGameMode();
+        });
+
+        peer.on('error', (err) => {
+          if (err.type === 'unavailable-id') {
+            alert(`La sala '${rawRoomId}' ya está en uso. Prueba con otro número.`);
+          } else {
+            alert(`Error de red Web (Host): ${err.type}`);
+          }
+          cleanupPeerSession();
+        });
+
+        peer.on('connection', (conn) => {
+          peerConn = conn;
+          setupPeerListeners();
+          alert("¡Oponente conectado a la sala estelar!");
+          setTimeout(() => {
+            if (peerConn && peerConn.open) {
+              peerConn.send({
+                type: 'sync_profile',
+                role: 'cyan',
+                name: player1Name,
+                hexVal: document.getElementById('playerColorPicker').value
+              });
+            }
+          }, 800);
+        });
+
+      } else {
+        peer = new Peer(peerConfig);
+
+        peer.on('open', () => {
+          peerConn = peer.connect(roomId);
+          setupPeerListeners();
+          myAssignedColor = 'magenta';
+          
+          peerConn.on('open', () => {
+            startSelectedGameMode();
+            const sign = getCameraSign();
+            camera.position.set(0, 8, 10 * sign);
+            controls.update();
+
+            setTimeout(() => {
+              if (peerConn && peerConn.open) {
+                peerConn.send({
+                  type: 'sync_profile',
+                  role: 'magenta',
+                  name: player1Name,
+                  hexVal: document.getElementById('playerColorPicker').value
+                });
+              }
+            }, 800);
+          });
+        });
+
+        peer.on('error', (err) => {
+          if (err.type === 'peer-unavailable') {
+            alert(`La sala '${rawRoomId}' no existe o el Host aún no la ha creado.`);
+          } else {
+            alert(`Error al unirse a la sala web: ${err.type}`);
+          }
+          cleanupPeerSession();
+        });
+      }
+    }
+
+    function setupPeerListeners() {
+      if (!peerConn) return;
+      peerConn.on('data', (data) => {
+        if (data.type === 'error') {
+          alert(data.message);
+          cleanupPeerSession();
+          location.reload();
+        } else if (data.type === 'move') {
+          executeRemoteMove(data.fR, data.fC, data.tR, data.tC);
+        } else if (data.type === 'chat') {
+          createChatSprite(data.sender, data.text, data.colorHex);
+        } else if (data.type === 'chat_lock') {
+          isChatLocked = data.locked;
+          const chatInp = document.getElementById('chatInput');
+          chatInp.disabled = isChatLocked;
+          chatInp.placeholder = isChatLocked ? "🔒 Chat bloqueado" : "Máx 28 caracteres...";
+          createChatSprite("SISTEMA", isChatLocked ? "Chat bloqueado por el oponente." : "Chat desbloqueado.", "#ffaa00");
+        } else if (data.type === 'sync_profile') {
+          if (data.role === 'cyan') {
+            player1Name = data.name;
+            applySpecificMaterialColor(matCyan, data.hexVal);
+          } else {
+            player2Name = data.name;
+            applySpecificMaterialColor(matMagenta, data.hexVal);
+          }
+          updateAvailablePiecesUI();
+        }
+      });
+
+      peerConn.on('close', () => {
+        peerConn = null;
+        cleanupPeerSession();
+        triggerGameOver("CONEXIÓN PERDIDA", "El oponente se ha desconectado de la sala.", "#ff5555");
+      });
+    }
+
+    async function initBluetoothConnection() {
+      try {
+        if (!navigator.bluetooth) {
+          alert("Se requiere entorno seguro (HTTPS) para habilitar Bluetooth.");
+          return;
+        }
+        bluetoothDevice = await navigator.bluetooth.requestDevice({ acceptAllDevices: true });
+        alert(`Bluetooth conectado: ${bluetoothDevice.name}`);
+        currentGameMode = 'bluetooth';
+        startSelectedGameMode();
+      } catch (err) {
+        alert("Conexión Bluetooth cancelada o no disponible.");
+      }
+    }
+
+    function toggleChatLock() {
+      isChatLocked = !isChatLocked;
+      const chatInp = document.getElementById('chatInput');
+      const lockBtn = document.getElementById('chatLockBtn');
+      chatInp.disabled = isChatLocked;
+      chatInp.placeholder = isChatLocked ? "🔒 Chat bloqueado" : "Máx 28 caracteres...";
+      lockBtn.innerText = isChatLocked ? "🔓 Desbloquear Chat" : "🔒 Bloquear Chat";
+      lockBtn.style.background = isChatLocked ? "rgba(0,255,170,0.3)" : "rgba(255,50,50,0.3)";
+      lockBtn.style.color = isChatLocked ? "#00ffaa" : "#ff8888";
+
+      createChatSprite("SISTEMA", isChatLocked ? "Has bloqueado el chat." : "Has desbloqueado el chat.", "#ffaa00");
+      if (currentGameMode === 'web' && peerConn && peerConn.open) {
+        peerConn.send({ type: 'chat_lock', locked: isChatLocked });
+      }
+    }
+
+    function handleLogout() {
+      currentUser = null;
+      clearInterval(turnTimerInterval);
+      cleanupPeerSession();
+      document.getElementById('game-ui').style.display = 'none';
+      const mC = document.getElementById('matrixCanvas');
+      if (mC) mC.style.display = 'block';
+      document.getElementById('auth-screen').style.display = 'flex';
+      switchAuthView('login');
+    }
+
+    function updateRankDisplay() {
+      if (!currentUser) return;
+      let title = 'Novato Estelar';
+      if (currentUser.games >= 5) title = 'Explorador Cósmico';
+      if (currentUser.games >= 15) title = 'Maestro Galáctico';
+      if (currentUser.games >= 30) title = 'Leyenda del Cosmos';
+      currentUser.level = title;
+      document.getElementById('adminRankDisplay').innerText = `${title} (${currentUser.games} juegos)`;
+      saveUsers();
+    }
+
+    function userChangePassword() {
+      if (!currentUser) return;
+      const newPass = document.getElementById('userNewPass').value.trim();
+      if (!newPass) { alert("Ingresa contraseña."); return; }
+      currentUser.pass = newPass;
+      saveUsers();
+      alert("Contraseña actualizada.");
+      document.getElementById('userNewPass').value = '';
+    }
+
+    function userDeleteOwnAccount() {
+      if (!currentUser) return;
+      if (confirm("¿Eliminar tu cuenta?")) {
+        const idx = usersDB.findIndex(u => u.email === currentUser.email);
+        if (idx !== -1) usersDB.splice(idx, 1);
+        saveUsers();
+        handleLogout();
+      }
+    }
+
+    function updateAdminUserList() {
+      const sel = document.getElementById('adminUserSelect');
+      sel.innerHTML = '';
+      usersDB.forEach((u, i) => {
+        sel.add(new Option(`${u.email} (${u.level})`, i));
+      });
+    }
+
+    function adminDeleteSelectedAccount() {
+      const idx = document.getElementById('adminUserSelect').value;
+      if (usersDB.length <= 1) { alert("Debe haber una cuenta mínima."); return; }
+      usersDB.splice(idx, 1);
+      saveUsers();
+      updateAdminUserList();
+      alert("Cuenta eliminada.");
+    }
+
+    function toggleAccordion(id) {
+      const el = document.getElementById(id);
+      const arrow = document.getElementById(id + 'Arrow');
+      const isOpen = el.classList.contains('open');
+      el.classList.toggle('open', !isOpen);
+      arrow.innerText = isOpen ? '►' : '▼';
+    }
+
+    // --- ESCENA 3D ---
+    const scene = new THREE.Scene();
+    let isNightMode = true;
+    let currentTurn = 'cyan';
+    let chatMessagesLeft = 3;
+    let pendingPromotion = null;
+    
+    const darkBg = 0x000000;
+    const lightBg = 0xffffff;
+    scene.background = new THREE.Color(darkBg);
+    scene.fog = new THREE.FogExp2(darkBg, 0.015);
+
+    const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+    camera.position.set(0, 10, 10);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    document.body.appendChild(renderer.domElement);
+
+    const controls = new THREE.OrbitControls(camera, renderer.domElement);
+    controls.target.set(0, 0, 0);
+
+    // ESTRELLAS
+    const starsGroup = new THREE.Group();
+    scene.add(starsGroup);
+    const starGeometry = new THREE.BufferGeometry();
+    const starPositions = new Float32Array(3600);
+    for (let i = 0; i < 3600; i += 3) {
+      starPositions[i] = (Math.random() - 0.5) * 80;
+      starPositions[i + 1] = (Math.random() - 0.5) * 80;
+      starPositions[i + 2] = (Math.random() - 0.5) * 80;
+    }
+    starGeometry.setAttribute('position', new THREE.BufferAttribute(starPositions, 3));
+
+    const starCanvas = document.createElement('canvas');
+    starCanvas.width = 16; starCanvas.height = 16;
+    const starCtx = starCanvas.getContext('2d');
+    starCtx.fillStyle = '#ffffff'; starCtx.beginPath(); starCtx.arc(8, 8, 6, 0, Math.PI * 2); starCtx.fill();
+    const starTexture = new THREE.CanvasTexture(starCanvas);
+    const starMaterial = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.35, map: starTexture, transparent: true, opacity: 0.8 });
+    starsGroup.add(new THREE.Points(starGeometry, starMaterial));
+
+    const matBoardLight = new THREE.MeshBasicMaterial({ color: 0x005577, transparent: true, opacity: 0.4 });
+    const matBoardDark = new THREE.MeshBasicMaterial({ color: 0x001122, transparent: true, opacity: 0.6 });
+    const lineMaterial = new THREE.LineBasicMaterial({ color: 0x00ffff, transparent: true, opacity: 0.8 });
+
+    const boardGroup = new THREE.Group();
+    scene.add(boardGroup);
+    
+    const boardState = Array(8).fill(null).map(() => Array(8).fill(null));
+    const tileMeshes = Array(8).fill(null).map(() => Array(8).fill(null));
+    const tileSize = 0.9;
+    const offset = (8 * tileSize) / 2 - tileSize / 2;
+
+    for (let r = 0; r < 8; r++) {
+      for (let c = 0; c < 8; c++) {
+        const isDark = (r + c) % 2 === 1;
+        const geo = new THREE.BoxGeometry(tileSize, 0.05, tileSize);
+        const tile = new THREE.Mesh(geo, isDark ? matBoardDark.clone() : matBoardLight.clone());
+        tile.position.set(c * tileSize - offset, -0.025, r * tileSize - offset);
+        tile.userData = { row: r, col: c, isTile: true, isDark };
+        boardGroup.add(tile);
+        tileMeshes[r][c] = tile;
+
+        const edges = new THREE.EdgesGeometry(geo);
+        const line = new THREE.LineSegments(edges, lineMaterial);
+        line.position.copy(tile.position);
+        boardGroup.add(line);
+      }
+    }
+
+    const borderGeo = new THREE.BoxGeometry(8 * tileSize + 0.4, 0.1, 8 * tileSize + 0.4);
+    const borderMesh = new THREE.Mesh(borderGeo, new THREE.MeshBasicMaterial({ color: 0x002233, transparent: true, opacity: 0.8 }));
+    borderMesh.position.set(0, -0.1, 0);
+    boardGroup.add(borderMesh);
+
+    function createTextSprite(text) {
+      const canvas = document.createElement('canvas');
+      canvas.width = 128; canvas.height = 128;
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#00ffff'; ctx.font = 'Bold 70px monospace'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      ctx.fillText(text, 64, 64);
+      const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: new THREE.CanvasTexture(canvas), transparent: true }));
+      sprite.scale.set(0.6, 0.6, 1);
+      return sprite;
+    }
+
+    const files = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
+    for (let c = 0; c < 8; c++) {
+      const posX = c * tileSize - offset;
+      const sTop = createTextSprite(files[c]); sTop.position.set(posX, 0.1, -offset - tileSize * 0.75); boardGroup.add(sTop);
+      const sBot = createTextSprite(files[c]); sBot.position.set(posX, 0.1, offset + tileSize * 0.75); boardGroup.add(sBot);
+    }
+    for (let r = 0; r < 8; r++) {
+      const posZ = r * tileSize - offset;
+      const labelNum = (r + 1).toString();
+      const sLeft = createTextSprite(labelNum); sLeft.position.set(-offset - tileSize * 0.75, 0.1, posZ); boardGroup.add(sLeft);
+      const sRight = createTextSprite(labelNum); sRight.position.set(offset + tileSize * 0.75, 0.1, posZ); boardGroup.add(sRight);
+    }
+
+    let activeChatSprite = null;
+
+    function createChatSprite(sender, message, colorHex, showRefreshBtn = false) {
+      if (activeChatSprite) {
+        scene.remove(activeChatSprite);
+        if (activeChatSprite.material.map) activeChatSprite.material.map.dispose();
+        activeChatSprite.material.dispose();
+      }
+
+      const canvas = document.createElement('canvas');
+      canvas.width = 512; canvas.height = showRefreshBtn ? 220 : 180;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = 'rgba(0, 15, 25, 0.95)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = colorHex; ctx.lineWidth = 6;
+      ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+
+      ctx.textAlign = 'center';
+      ctx.fillStyle = colorHex; 
+      ctx.font = 'Bold 22px monospace'; 
+      ctx.shadowColor = colorHex; 
+      ctx.shadowBlur = 10;
+      ctx.fillText(sender, 256, 30);
+
+      ctx.shadowBlur = 0;
+      ctx.font = '15px monospace'; 
+      ctx.fillStyle = '#ffffff';
+      
+      let words = message.split(' ');
+      let lines = [];
+      let currentLine = '';
+      
+      words.forEach(w => {
+        let testLine = currentLine + w + ' ';
+        if (ctx.measureText(testLine).width > 440) {
+          lines.push(currentLine.trim());
+          currentLine = w + ' ';
+        } else {
+          currentLine = testLine;
+        }
+      });
+      lines.push(currentLine.trim());
+
+      let startY = 70;
+      lines.forEach((line, index) => {
+        ctx.fillText(line, 256, startY + (index * 22));
+      });
+
+      if (showRefreshBtn) {
+        ctx.fillStyle = 'rgba(0, 255, 255, 0.3)';
+        ctx.fillRect(156, canvas.height - 45, 200, 32);
+        ctx.strokeStyle = '#00ffff';
+        ctx.strokeRect(156, canvas.height - 45, 200, 32);
+        ctx.fillStyle = '#00ffff'; 
+        ctx.font = 'Bold 14px monospace';
+        ctx.fillText("[ NUEVA PARTIDA ]", 256, canvas.height - 24);
+      }
+
+      const texture = new THREE.CanvasTexture(canvas);
+      activeChatSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: texture, transparent: true }));
+      activeChatSprite.scale.set(4.2, showRefreshBtn ? 1.8 : 1.4, 1);
+      activeChatSprite.position.set(0, 2.8, 0);
+      scene.add(activeChatSprite);
+    }
+
+    function triggerWarningNotice(title, messageText, colorHex) {
+      triggerExplosionEffect(new THREE.Vector3(0, 0.5, 0), parseInt(colorHex.replace('#', ''), 16), () => {
+        createChatSprite(title, messageText, colorHex, false);
+      });
+    }
+
+    function sendChatMessage() {
+      if (isChatLocked || chatMessagesLeft <= 0 || isGameOver) return;
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      const playerName = currentTurn === 'cyan' ? player1Name : player2Name;
+      const colorHex = currentTurn === 'cyan' ? '#' + matCyan.color.getHexString() : '#' + matMagenta.color.getHexString();
+      createChatSprite(playerName, text, colorHex);
+      if (currentGameMode === 'web' && peerConn) peerConn.send({ type: 'chat', sender: playerName, text, colorHex });
+      input.value = '';
+      chatMessagesLeft--;
+      document.getElementById('chatCount').innerText = chatMessagesLeft;
+    }
+
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+    let selectedPieceCoords = null;
+
+    window.addEventListener('pointerdown', (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+      raycaster.setFromCamera(mouse, camera);
+
+      if (activeChatSprite) {
+        const intersects = raycaster.intersectObject(activeChatSprite);
+        if (intersects.length > 0) {
+          if (isGameOver) {
+            startSelectedGameMode();
+          }
+          scene.remove(activeChatSprite);
+          if (activeChatSprite.material.map) activeChatSprite.material.map.dispose();
+          activeChatSprite.material.dispose();
+          activeChatSprite = null;
+          return;
+        }
+      }
+
+      if (isGameOver) return;
+
+      const allObjects = [];
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c]) allObjects.push(boardState[r][c]);
+          if (tileMeshes[r][c]) allObjects.push(tileMeshes[r][c]);
+        }
+      }
+
+      const intersects = raycaster.intersectObjects(allObjects);
+      if (intersects.length > 0) {
+        const hit = intersects[0].object;
+        if (currentGameMode === 'web' && currentTurn !== myAssignedColor) return;
+
+        if (hit.userData.type && hit.userData.color) {
+          if (hit.userData.color === currentTurn) {
+            selectedPieceCoords = { row: hit.userData.row, col: hit.userData.col };
+            fromSel.value = `${selectedPieceCoords.row},${selectedPieceCoords.col}`;
+            updateValidDestinations();
+            highlightValidMoves(selectedPieceCoords.row, selectedPieceCoords.col);
+          }
+        } else if (hit.userData.isTile) {
+          const tR = hit.userData.row;
+          const tC = hit.userData.col;
+          if (selectedPieceCoords) {
+            if (isValidMove(selectedPieceCoords.row, selectedPieceCoords.col, tR, tC)) {
+              toSel.value = `${tR},${tC}`;
+              executeMoveInternal(selectedPieceCoords.row, selectedPieceCoords.col, tR, tC, true);
+              selectedPieceCoords = null;
+              clearHighlights();
+            } else {
+              selectedPieceCoords = null;
+              clearHighlights();
+            }
+          }
+        }
+      }
+    });
+
+    function highlightValidMoves(fR, fC) {
+      clearHighlights();
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (isValidMove(fR, fC, r, c)) {
+            tileMeshes[r][c].material.color.setHex(0x00ffaa);
+            tileMeshes[r][c].material.opacity = 0.8;
+          }
+        }
+      }
+    }
+
+    function clearHighlights() {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const tile = tileMeshes[r][c];
+          tile.material.color.setHex(tile.userData.isDark ? 0x001122 : 0x005577);
+          tile.material.opacity = tile.userData.isDark ? 0.6 : 0.4;
+        }
+      }
+    }
+
+    const activeEffects = [];
+
+    function triggerBlackHoleEffect(position, colorHex, onComplete) {
+      const effectGroup = new THREE.Group();
+      effectGroup.position.copy(position);
+      scene.add(effectGroup);
+      const pCount = 200;
+      const pGeo = new THREE.BufferGeometry();
+      const pPos = new Float32Array(pCount * 3);
+      const pAngles = new Float32Array(pCount);
+      const pDistances = new Float32Array(pCount);
+      for (let i = 0; i < pCount; i++) {
+        pAngles[i] = Math.random() * Math.PI * 2;
+        pDistances[i] = 0.5 + Math.random() * 2.5;
+        pPos[i * 3] = Math.cos(pAngles[i]) * pDistances[i];
+        pPos[i * 3 + 1] = (Math.random() - 0.5) * 1.0;
+        pPos[i * 3 + 2] = Math.sin(pAngles[i]) * pDistances[i];
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      const pMat = new THREE.PointsMaterial({ color: colorHex, size: 0.15, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+      effectGroup.add(new THREE.Points(pGeo, pMat));
+
+      let progress = 0;
+      activeEffects.push({
+        update: (delta) => {
+          progress += delta / 0.8;
+          if (progress < 1.0) {
+            const posAttr = pGeo.attributes.position;
+            for (let i = 0; i < pCount; i++) {
+              pDistances[i] *= 0.88;
+              pAngles[i] += 0.25;
+              posAttr.setXYZ(i, Math.cos(pAngles[i]) * pDistances[i], posAttr.getY(i) * 0.9, Math.sin(pAngles[i]) * pDistances[i]);
+            }
+            posAttr.needsUpdate = true;
+          } else {
+            scene.remove(effectGroup);
+            pGeo.dispose(); pMat.dispose();
+            if (onComplete) onComplete();
+            return false;
+          }
+          return true;
+        }
+      });
+    }
+
+    function triggerExplosionEffect(position, colorHex, onComplete) {
+      const effectGroup = new THREE.Group();
+      effectGroup.position.copy(position);
+      scene.add(effectGroup);
+      const pCount = 250;
+      const pGeo = new THREE.BufferGeometry();
+      const pPos = new Float32Array(pCount * 3);
+      const pVelocities = [];
+      for (let i = 0; i < pCount; i++) {
+        pPos[i * 3] = 0; pPos[i * 3 + 1] = 0.2; pPos[i * 3 + 2] = 0;
+        const speed = 3.0 + Math.random() * 5.0;
+        const theta = Math.random() * 2 * Math.PI;
+        const phi = Math.acos(2 * Math.random() - 1);
+        pVelocities.push(new THREE.Vector3(speed * Math.sin(phi) * Math.cos(theta), speed * Math.sin(phi) * Math.sin(theta) + 2, speed * Math.cos(phi)));
+      }
+      pGeo.setAttribute('position', new THREE.BufferAttribute(pPos, 3));
+      const pMat = new THREE.PointsMaterial({ color: colorHex, size: 0.2, transparent: true, opacity: 1.0, blending: THREE.AdditiveBlending });
+      effectGroup.add(new THREE.Points(pGeo, pMat));
+
+      let progress = 0;
+      activeEffects.push({
+        update: (delta) => {
+          progress += delta / 0.6;
+          if (progress < 1.0) {
+            const posAttr = pGeo.attributes.position;
+            for (let i = 0; i < pCount; i++) {
+              const v = pVelocities[i];
+              posAttr.setXYZ(i, posAttr.getX(i) + v.x * delta, posAttr.getY(i) + v.y * delta, posAttr.getZ(i) + v.z * delta);
+            }
+            posAttr.needsUpdate = true;
+            pMat.opacity = 1.0 - progress;
+          } else {
+            scene.remove(effectGroup);
+            pGeo.dispose(); pMat.dispose();
+            if (onComplete) onComplete();
+            return false;
+          }
+          return true;
+        }
+      });
+    }
+
+    function createPieceGeometry(type) {
+      if (currentPieceModelSet === 1) {
+        switch (type) {
+          case 'p': return new THREE.ConeGeometry(0.25, 0.5, 5);
+          case 'r': return new THREE.BoxGeometry(0.4, 0.5, 0.4);
+          case 'n': return new THREE.OctahedronGeometry(0.3);
+          case 'b': return new THREE.TetrahedronGeometry(0.35);
+          case 'q': return new THREE.DodecahedronGeometry(0.3);
+          case 'k': return new THREE.IcosahedronGeometry(0.35);
+        }
+      } else if (currentPieceModelSet === 2) {
+        switch (type) {
+          case 'p': return new THREE.CylinderGeometry(0.15, 0.25, 0.5, 6);
+          case 'r': return new THREE.CylinderGeometry(0.3, 0.3, 0.5, 4);
+          case 'n': return new THREE.SphereGeometry(0.3, 8, 8);
+          case 'b': return new THREE.ConeGeometry(0.3, 0.6, 4);
+          case 'q': return new THREE.TorusGeometry(0.25, 0.1, 8, 16);
+          case 'k': return new THREE.CylinderGeometry(0.2, 0.3, 0.7, 6);
+        }
+      } else {
+        let points = [];
+        if (type === 'p') {
+          points = [
+            new THREE.Vector2(0, 0), new THREE.Vector2(0.28, 0.04), new THREE.Vector2(0.22, 0.1),
+            new THREE.Vector2(0.12, 0.25), new THREE.Vector2(0.1, 0.35), new THREE.Vector2(0.18, 0.42), new THREE.Vector2(0, 0.48)
+          ];
+        } else if (type === 'r') {
+          points = [
+            new THREE.Vector2(0, 0), new THREE.Vector2(0.3, 0.05), new THREE.Vector2(0.25, 0.12),
+            new THREE.Vector2(0.22, 0.38), new THREE.Vector2(0.28, 0.45), new THREE.Vector2(0.28, 0.52)
+          ];
+        } else if (type === 'n') {
+          points = [
+            new THREE.Vector2(0, 0), new THREE.Vector2(0.3, 0.04), new THREE.Vector2(0.22, 0.12),
+            new THREE.Vector2(0.28, 0.22), new THREE.Vector2(0.35, 0.35), new THREE.Vector2(0.15, 0.46), new THREE.Vector2(0, 0.52)
+          ];
+        } else if (type === 'b') {
+          points = [
+            new THREE.Vector2(0, 0), new THREE.Vector2(0.3, 0.05), new THREE.Vector2(0.2, 0.15),
+            new THREE.Vector2(0.12, 0.35), new THREE.Vector2(0.2, 0.46), new THREE.Vector2(0.08, 0.55), new THREE.Vector2(0, 0.6)
+          ];
+        } else if (type === 'q') {
+          points = [
+            new THREE.Vector2(0, 0), new THREE.Vector2(0.32, 0.05), new THREE.Vector2(0.24, 0.15),
+            new THREE.Vector2(0.14, 0.35), new THREE.Vector2(0.28, 0.46), new THREE.Vector2(0.22, 0.56), new THREE.Vector2(0, 0.63)
+          ];
+        } else if (type === 'k') {
+          points = [
+            new THREE.Vector2(0, 0), new THREE.Vector2(0.34, 0.05), new THREE.Vector2(0.26, 0.15),
+            new THREE.Vector2(0.15, 0.38), new THREE.Vector2(0.28, 0.5), new THREE.Vector2(0.2, 0.62), new THREE.Vector2(0, 0.7)
+          ];
+        }
+        return new THREE.LatheGeometry(points, 16);
+      }
+    }
+
+    function placePiece(type, color, row, col) {
+      const geo = createPieceGeometry(type);
+      const mesh = new THREE.Mesh(geo, color === 'cyan' ? matCyan : matMagenta);
+      mesh.position.set(col * tileSize - offset, 0.3, row * tileSize - offset);
+      mesh.userData = { type, color, row, col, hasMoved: false };
+      scene.add(mesh);
+
+      if (type === 'k' && currentPieceModelSet === 3) {
+        const crossGeo = new THREE.BoxGeometry(0.1, 0.2, 0.1);
+        const crossMesh = new THREE.Mesh(crossGeo, color === 'cyan' ? matCyan : matMagenta);
+        crossMesh.position.set(0, 0.42, 0);
+        mesh.add(crossMesh);
+      }
+
+      boardState[row][col] = mesh;
+    }
+
+    function isPathClear(fR, fC, tR, tC) {
+      const rStep = Math.sign(tR - fR);
+      const cStep = Math.sign(tC - fC);
+      let currR = fR + rStep, currC = fC + cStep;
+      while (currR !== tR || currC !== tC) {
+        if (boardState[currR][currC]) return false;
+        currR += rStep; currC += cStep;
+      }
+      return true;
+    }
+
+    function isValidMove(fR, fC, tR, tC) {
+      const piece = boardState[fR][fC];
+      if (!piece || fR === tR && fC === tC) return false;
+      const target = boardState[tR][tC];
+      if (target && target.userData.color === piece.userData.color) return false;
+
+      const type = piece.userData.type, color = piece.userData.color;
+      const dr = tR - fR, dc = tC - fC, absDr = Math.abs(dr), absDc = Math.abs(dc);
+
+      if (type === 'p') {
+        const dir = (color === 'cyan') ? -1 : 1;
+        const startRow = (color === 'cyan') ? 6 : 1;
+        if (absDc === 0 && dr === dir && !target) return true;
+        if (absDc === 0 && dr === dir * 2 && fR === startRow && !target && !boardState[fR + dir][fC]) return true;
+        if (absDc === 1 && dr === dir && target && target.userData.color !== color) return true;
+        if (enPassantTarget && absDc === 1 && dr === dir && tR === enPassantTarget.row && tC === enPassantTarget.col) return true;
+        return false;
+      }
+      if (type === 'r') return (dr === 0 || dc === 0) && isPathClear(fR, fC, tR, tC);
+      if (type === 'n') return (absDr === 2 && absDc === 1) || (absDr === 1 && absDc === 2);
+      if (type === 'b') return absDr === absDc && isPathClear(fR, fC, tR, tC);
+      if (type === 'q') return ((dr === 0 || dc === 0) || (absDr === absDc)) && isPathClear(fR, fC, tR, tC);
+      if (type === 'k') {
+        if (Math.max(absDr, absDc) === 1) return true;
+        if (!piece.userData.hasMoved && dr === 0 && absDc === 2) {
+          const rookCol = dc > 0 ? 7 : 0;
+          const rook = boardState[fR][rookCol];
+          if (rook && rook.userData.type === 'r' && !rook.userData.hasMoved && isPathClear(fR, fC, fR, rookCol)) return true;
+        }
+        return false;
+      }
+      return false;
+    }
+
+    function findKingPosition(color) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = boardState[r][c];
+          if (p && p.userData.type === 'k' && p.userData.color === color) return { row: r, col: c };
+        }
+      }
+      return null;
+    }
+
+    function isSquareAttacked(r, c, byColor) {
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const p = boardState[row][col];
+          if (p && p.userData.color === byColor && isValidMove(row, col, r, c)) return true;
+        }
+      }
+      return false;
+    }
+
+    function isKingInCheck(color) {
+      const kPos = findKingPosition(color);
+      if (!kPos) return false;
+      return isSquareAttacked(kPos.row, kPos.col, (color === 'cyan') ? 'magenta' : 'cyan');
+    }
+
+    function hasAnyValidMoves(color) {
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = boardState[r][c];
+          if (p && p.userData.color === color) {
+            for (let tr = 0; tr < 8; tr++) {
+              for (let tc = 0; tc < 8; tc++) {
+                if (isValidMove(r, c, tr, tc)) {
+                  const target = boardState[tr][tc];
+                  boardState[tr][tc] = p; boardState[r][c] = null;
+                  const stillInCheck = isKingInCheck(color);
+                  boardState[r][c] = p; boardState[tr][tc] = target;
+                  if (!stillInCheck) return true;
+                }
+              }
+            }
+          }
+        }
+      }
+      return false;
+    }
+
+    function checkGameStatusAtTurnStart() {
+      if (isKingInCheck(currentTurn)) {
+        if (!hasAnyValidMoves(currentTurn)) {
+          const winnerName = (currentTurn === 'cyan') ? player2Name : player1Name;
+          triggerGameOver(`¡JAQUE MATE!\n¡Felicidades, ganó ${winnerName.toUpperCase()}!\n\nEstadísticas:\nSirius - Movs: ${stats.cyan.moves}, T: ${Math.round(stats.cyan.totalTime)}s\nVega - Movs: ${stats.magenta.moves}, T: ${Math.round(stats.magenta.totalTime)}s`);
+        } else {
+          triggerWarningNotice("¡AVISO DE JAQUE!", "¡El Rey está amenazado! Debe escapar o protegerse.", "#ff5555");
+        }
+      } else {
+        if (!hasAnyValidMoves(currentTurn)) {
+          triggerGameOver(`¡EMPATE TÁCTICO / JUEGO TRABADO (AHOGADO)!\nNo hay movimientos legales disponibles para ${currentTurn === 'cyan' ? player1Name : player2Name}.\n\nEl juego ha finalizado en tablas estelares.`);
+        }
+      }
+    }
+
+    const fromSel = document.getElementById('fromCell');
+    const toSel = document.getElementById('toCell');
+    const turnDisplay = document.getElementById('turnDisplay');
+    const pieceNames = { p: 'Peón', r: 'Torre', n: 'Caballo', b: 'Alfil', q: 'Reina', k: 'Rey' };
+
+    function updateAvailablePiecesUI() {
+      fromSel.innerHTML = '';
+      const currentNameTurn = currentTurn === 'cyan' ? player1Name : player2Name;
+      turnDisplay.innerText = `TURNO: ${currentNameTurn.toUpperCase()}`;
+      turnDisplay.style.color = currentTurn === 'cyan' ? "#00ffff" : "#ff00aa";
+      document.getElementById('myAssignedRoleDisplay').innerText = currentNameTurn;
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const piece = boardState[r][c];
+          if (piece && piece.userData.color === currentTurn) {
+            fromSel.add(new Option(`${pieceNames[piece.userData.type]} (${files[c]}${r + 1})`, `${r},${c}`));
+          }
+        }
+      }
+      updateValidDestinations();
+    }
+
+    function updateValidDestinations() {
+      toSel.innerHTML = '';
+      if (!fromSel.value) return;
+      const [fR, fC] = fromSel.value.split(',').map(Number);
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (isValidMove(fR, fC, r, c)) toSel.add(new Option(`${files[c]}${r + 1}`, `${r},${c}`));
+        }
+      }
+    }
+
+    function movePieceUI() {
+      if (isGameOver || pendingPromotion) return;
+      if (!fromSel.value || !toSel.value) { alert("Selecciona origen y destino."); return; }
+      const [fR, fC] = fromSel.value.split(',').map(Number);
+      const [tR, tC] = toSel.value.split(',').map(Number);
+      executeMoveInternal(fR, fC, tR, tC, true);
+    }
+
+    function executeRemoteMove(fR, fC, tR, tC) {
+      executeMoveInternal(fR, fC, tR, tC, false);
+    }
+
+    function executeMoveInternal(fR, fC, tR, tC, isLocalInitiated) {
+      if (isGameOver) return;
+      const piece = boardState[fR][fC];
+      if (!piece) return;
+
+      recordTurnTime();
+      stats[currentTurn].moves++;
+
+      let targetPiece = boardState[tR][tC];
+      let isEnPassant = (piece.userData.type === 'p' && enPassantTarget && tR === enPassantTarget.row && tC === enPassantTarget.col);
+      if (isEnPassant) {
+        targetPiece = boardState[(piece.userData.color === 'cyan') ? tR + 1 : tR - 1][tC];
+      }
+
+      const applyPos = () => {
+        if (targetPiece && targetPiece.userData.type === 'k') {
+          const winnerName = (currentTurn === 'cyan') ? player1Name : player2Name;
+          scene.remove(targetPiece);
+          boardState[tR][tC] = piece; boardState[fR][fC] = null;
+          triggerGameOver(`¡REY CAPTURADO!\n¡Felicidades, ganó ${winnerName.toUpperCase()}!\n\nEstadísticas:\nSirius - Movs: ${stats.cyan.moves}, T: ${Math.round(stats.cyan.totalTime)}s\nVega - Movs: ${stats.magenta.moves}, T: ${Math.round(stats.magenta.totalTime)}s`);
+          return;
+        }
+
+        piece.position.set(tC * tileSize - offset, 0.3, tR * tileSize - offset);
+        piece.userData.row = tR; piece.userData.col = tC; piece.userData.hasMoved = true;
+        boardState[tR][tC] = piece; boardState[fR][fC] = null;
+
+        if (isLocalInitiated && currentGameMode === 'web' && peerConn) {
+          peerConn.send({ type: 'move', fR, fC, tR, tC });
+        }
+
+        const isPromotion = (piece.userData.type === 'p') && ((piece.userData.color === 'cyan' && tR === 0) || (piece.userData.color === 'magenta' && tR === 7));
+        if (isPromotion) {
+          pendingPromotion = { piece, row: tR, col: tC };
+          document.getElementById('promotionGroup').style.display = 'block';
+          return;
+        }
+
+        finishTurnAfterMove();
+      };
+
+      if (targetPiece) {
+        triggerBlackHoleEffect(targetPiece.position.clone(), currentTurn === 'cyan' ? matCyan.color.getHex() : matMagenta.color.getHex(), () => {
+          if (isEnPassant) boardState[(piece.userData.color === 'cyan') ? tR + 1 : tR - 1][tC] = null;
+          if (targetPiece.userData.type !== 'k') scene.remove(targetPiece);
+          applyPos();
+        });
+      } else {
+        applyPos();
+      }
+    }
+
+    function confirmPromotion() {
+      if (!pendingPromotion) return;
+      const choice = document.getElementById('promotionChoice').value;
+      const { piece, row, col } = pendingPromotion;
+      const color = piece.userData.color;
+      const pos = piece.position.clone();
+
+      triggerExplosionEffect(pos, color === 'cyan' ? matCyan.color.getHex() : matMagenta.color.getHex(), () => {
+        scene.remove(piece);
+        const newMesh = new THREE.Mesh(createPieceGeometry(choice), color === 'cyan' ? matCyan : matMagenta);
+        newMesh.position.copy(pos);
+        newMesh.userData = { type: choice, color, row, col, hasMoved: true };
+        scene.add(newMesh);
+        if (choice === 'k' && currentPieceModelSet === 3) {
+          const crossGeo = new THREE.BoxGeometry(0.1, 0.2, 0.1);
+          const crossMesh = new THREE.Mesh(crossGeo, color === 'cyan' ? matCyan : matMagenta);
+          crossMesh.position.set(0, 0.42, 0);
+          newMesh.add(crossMesh);
+        }
+        boardState[row][col] = newMesh;
+        pendingPromotion = null;
+        document.getElementById('promotionGroup').style.display = 'none';
+        finishTurnAfterMove();
+      });
+    }
+
+    function finishTurnAfterMove() {
+      if (isGameOver) return;
+      if (currentUser) { currentUser.games++; updateRankDisplay(); }
+
+      if (!isChatLocked) {
+        chatMessagesLeft = 3;
+        const chatInp = document.getElementById('chatInput');
+        chatInp.disabled = false; chatInp.placeholder = "Máx 28 caracteres...";
+        document.getElementById('chatCount').innerText = chatMessagesLeft;
+      }
+
+      currentTurn = (currentTurn === 'cyan') ? 'magenta' : 'cyan';
+      clearHighlights();
+      selectedPieceCoords = null;
+      updateAvailablePiecesUI();
+
+      startTurnTimer();
+      checkGameStatusAtTurnStart();
+
+      if (currentGameMode === 'ai' && currentTurn === 'magenta' && !isGameOver) {
+        setTimeout(makeAIMove, 800);
+      }
+    }
+
+    function makeAIMove() {
+      if (isGameOver) return;
+      const validMoves = [];
+      const pieceValues = { p: 1, n: 3, b: 3, r: 5, q: 9, k: 100 };
+
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          const p = boardState[r][c];
+          if (p && p.userData.color === 'magenta') {
+            for (let tr = 0; tr < 8; tr++) {
+              for (let tc = 0; tc < 8; tc++) {
+                if (isValidMove(r, c, tr, tc)) {
+                  let score = 0;
+                  const target = boardState[tr][tc];
+                  if (target) {
+                    score += (pieceValues[target.userData.type] || 1) * 15;
+                  }
+                  score += tr * 0.5; // IA avanza hacia abajo (hacia la fila 7)
+                  score += Math.random() * 2;
+
+                  validMoves.push({ fR: r, fC: c, tR: tr, tC: tc, score });
+                }
+              }
+            }
+          }
+        }
+      }
+
+      if (validMoves.length > 0) {
+        validMoves.sort((a, b) => b.score - a.score);
+        const bestMove = validMoves[0];
+        executeMoveInternal(bestMove.fR, bestMove.fC, bestMove.tR, bestMove.tC, false);
+      }
+    }
+
+    function togglePanel() { document.getElementById('math-panel').classList.toggle('hidden'); }
+    function toggleFullscreen() { if (!document.fullscreenElement) document.documentElement.requestFullscreen(); else document.exitFullscreen(); }
+    
+    function getCameraSign() { 
+      return (myAssignedColor === 'magenta') ? -1 : 1; 
+    }
+    
+    function toggle2DStaticMode() {
+      is2DStaticMode = !is2DStaticMode;
+      controls.enabled = !is2DStaticMode;
+      const aspect = window.innerWidth / window.innerHeight;
+      const fitHeight = aspect < 1 ? 12 / aspect * 0.8 : 12;
+      camera.position.set(0, fitHeight, 0.001 * getCameraSign());
+      controls.target.set(0, 0, 0);
+      controls.update();
+      alert(is2DStaticMode ? "Modo 2D Estático activado." : "Modo 3D / Cámara libre activado.");
+    }
+
+    function toggleTopView() {
+      is2DStaticMode = false;
+      controls.enabled = true;
+      camera.position.set(0, 14, 0.01 * getCameraSign());
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function togglePerspectiveView() {
+      is2DStaticMode = false;
+      controls.enabled = true;
+      camera.position.set(0, 8, 10 * getCameraSign());
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function toggleSideView(side) {
+      is2DStaticMode = false;
+      controls.enabled = true;
+      camera.position.set(side === 'left' ? -10 * getCameraSign() : 10 * getCameraSign(), 4, 0);
+      controls.target.set(0, 0, 0);
+      controls.update();
+    }
+
+    function toggleTheme() {
+      isNightMode = !isNightMode;
+      document.body.classList.toggle('light-mode', !isNightMode);
+      scene.background.setHex(isNightMode ? darkBg : lightBg);
+      scene.fog.color.setHex(isNightMode ? darkBg : lightBg);
+    }
+
+    const clock = new THREE.Clock();
+    function animate() {
+      requestAnimationFrame(animate);
+      const delta = clock.getDelta(), t = clock.getElapsedTime();
+      starsGroup.rotation.y = t * 0.02;
+      for (let i = activeEffects.length - 1; i >= 0; i--) {
+        if (!activeEffects[i].update(delta)) activeEffects.splice(i, 1);
+      }
+      for (let r = 0; r < 8; r++) {
+        for (let c = 0; c < 8; c++) {
+          if (boardState[r][c]) boardState[r][c].rotation.y = t * 0.5;
+        }
+      }
+      controls.update();
+      renderer.render(scene, camera);
+    }
+    animate();
+
+    window.addEventListener('resize', () => {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+  </script>
+</body>
+</html>
